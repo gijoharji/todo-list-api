@@ -1,4 +1,4 @@
-fastapi
-uvicorn
-celery
-redis
+greenlet==3.1.1
+psycopg2-binary==2.9.10
+SQLAlchemy==2.0.40
+typing_extensions==4.13.1
