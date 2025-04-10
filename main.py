@@ -16,6 +16,10 @@ class Task(BaseModel):
     created_at: datetime = datetime.utcnow()
     completed_at: Optional[datetime] = None
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the To-Do List API!"}
+
 @app.post("/tasks/", response_model=Task)
 def create_task(task: Task):
     tasks.append(task)
