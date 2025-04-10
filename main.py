@@ -2,10 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
-<<<<<<< HEAD
-=======
 from celery_worker import send_notification
->>>>>>> c5dff36 (Initial commit: FastAPI + Celery + Redis)
 
 app = FastAPI()
 
