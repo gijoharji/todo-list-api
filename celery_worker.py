@@ -1,11 +1,10 @@
-from celery import Celery
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
-celery_app = Celery(
-    "worker",
-    broker="redis://<render-redis-url>:6379/0",  # Use the Render Redis URL
-    backend="redis://<render-redis-url>:6379/0"
-)
+executor = ThreadPoolExecutor()
 
-@celery_app.task
-def send_notification(task_title: str):
-    print(f"📬 Notification sent for task: {task_title}")
+def send_notification(title: str):
+    with open("message_queue.txt", "a") as f:
+        f.write(f"{datetime.utcnow()} - Notification sent for: {title}\n")
+    print(f"📬 Notification sent for: {title}")
+

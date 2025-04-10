@@ -6,17 +6,17 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from celery_worker import send_notification
 
-# PostgreSQL database URL
+
 SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://new_9p3z_user:gj4BF7RIi0OkWvZppWAmIhmuJ8FUEYUz@dpg-cvrsh36uk2gs73bjhf10-a:5432/new_9p3z"
 
-# Database setup
+
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 app = FastAPI()
 
-# SQLAlchemy model
+
 class TaskModel(Base):
     __tablename__ = "tasks"
 
@@ -27,10 +27,10 @@ class TaskModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-# Create DB tables
+
 Base.metadata.create_all(bind=engine)
 
-# Pydantic schema
+
 class TaskSchema(BaseModel):
     id: int
     title: str
@@ -42,7 +42,7 @@ class TaskSchema(BaseModel):
     class Config:
         orm_mode = True
 
-# Dependency
+
 def get_db():
     db = SessionLocal()
     try:
@@ -67,8 +67,28 @@ def create_task(task: TaskSchema, db: Session = Depends(get_db)):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
-    send_notification.delay(task.title)
+
+    
+    with open("logs.txt", "a") as log:
+        log.write(f"{datetime.utcnow()} - Created Task: {task.title}\n")
+
+  
+    print(f"📬 Simulated notification for task: {task.title}")
+
     return db_task
+
+
+@app.get("/stats/")
+def get_stats(db: Session = Depends(get_db)):
+    total_tasks = db.query(TaskModel).count()
+    completed_tasks = db.query(TaskModel).filter(TaskModel.completed == True).count()
+    pending_tasks = total_tasks - completed_tasks
+
+    return {
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "pending_tasks": pending_tasks
+    }
 
 @app.get("/tasks/", response_model=List[TaskSchema])
 def get_tasks(db: Session = Depends(get_db)):
