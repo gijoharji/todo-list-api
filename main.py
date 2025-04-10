@@ -2,6 +2,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
+<<<<<<< HEAD
+=======
+from celery_worker import send_notification
+>>>>>>> c5dff36 (Initial commit: FastAPI + Celery + Redis)
 
 app = FastAPI()
 
@@ -18,6 +22,7 @@ class Task(BaseModel):
 @app.post("/tasks/", response_model=Task)
 def create_task(task: Task):
     tasks.append(task)
+    send_notification.delay(task.title)
     return task
 
 @app.get("/tasks/", response_model=List[Task])
