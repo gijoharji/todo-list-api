@@ -2,8 +2,8 @@ from celery import Celery
 
 celery_app = Celery(
     "worker",
-    broker="redis://localhost:6379/0",   # Redis broker
-    backend="redis://localhost:6379/0"   # Redis result backend
+    broker="redis://<render-redis-url>:6379/0",  # Use the Render Redis URL
+    backend="redis://<render-redis-url>:6379/0"
 )
 
 @celery_app.task

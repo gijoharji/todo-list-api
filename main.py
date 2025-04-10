@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from celery_worker import send_notification
 
 # PostgreSQL database URL (replace <password> with your actual password)
-SQLALCHEMY_DATABASE_URL = "postgres://new_9p3z_user:<password>@dpg-cvrsh36uk2gs73bjhf10-a:5432/new_9p3z"
+SQLALCHEMY_DATABASE_URL = "postgres://new_9p3z_user:gj4BF7RIi0OkWvZppWAmIhmuJ8FUEYUz@dpg-cvrsh36uk2gs73bjhf10-a:5432/new_9p3z"
 
 # Database setup
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
