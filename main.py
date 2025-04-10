@@ -2,21 +2,36 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from celery_worker import send_notification
 
-# PostgreSQL database URL (replace <password> with your actual password)
+# PostgreSQL database URL
 SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://new_9p3z_user:gj4BF7RIi0OkWvZppWAmIhmuJ8FUEYUz@dpg-cvrsh36uk2gs73bjhf10-a:5432/new_9p3z"
 
 # Database setup
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 app = FastAPI()
 
-# Pydantic model for task
-class Task(BaseModel):
+# SQLAlchemy model
+class TaskModel(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, default="")
+    completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+# Create DB tables
+Base.metadata.create_all(bind=engine)
+
+# Pydantic schema
+class TaskSchema(BaseModel):
     id: int
     title: str
     description: str = ""
@@ -24,7 +39,10 @@ class Task(BaseModel):
     created_at: datetime = datetime.utcnow()
     completed_at: Optional[datetime] = None
 
-# Dependency to get the database session
+    class Config:
+        orm_mode = True
+
+# Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -36,11 +54,9 @@ def get_db():
 def read_root():
     return {"message": "Welcome to the To-Do List API!"}
 
-# Create a task and add to the database
-@app.post("/tasks/", response_model=Task)
-def create_task(task: Task, db: Session = Depends(get_db)):
-    # Save task to database
-    db_task = Task(
+@app.post("/tasks/", response_model=TaskSchema)
+def create_task(task: TaskSchema, db: Session = Depends(get_db)):
+    db_task = TaskModel(
         id=task.id,
         title=task.title,
         description=task.description,
@@ -51,67 +67,55 @@ def create_task(task: Task, db: Session = Depends(get_db)):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
-    
-    # Send notification task via Celery
     send_notification.delay(task.title)
-    
     return db_task
 
-# Retrieve all tasks
-@app.get("/tasks/", response_model=List[Task])
+@app.get("/tasks/", response_model=List[TaskSchema])
 def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
-    return tasks
+    return db.query(TaskModel).all()
 
-# Retrieve a single task by ID
-@app.get("/tasks/{task_id}", response_model=Task)
+@app.get("/tasks/{task_id}", response_model=TaskSchema)
 def get_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
-# Update a task
-@app.put("/tasks/{task_id}", response_model=Task)
-def update_task(task_id: int, updated_task: Task, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+@app.put("/tasks/{task_id}", response_model=TaskSchema)
+def update_task(task_id: int, updated_task: TaskSchema, db: Session = Depends(get_db)):
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     task.title = updated_task.title
     task.description = updated_task.description
     task.completed = updated_task.completed
     task.completed_at = updated_task.completed_at
-    
+
     db.commit()
     db.refresh(task)
-    
     return task
 
-# Mark a task as completed
 @app.put("/tasks/{task_id}/complete")
 def complete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     task.completed = True
     task.completed_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(task)
-    
     return {"message": "Task marked as completed"}
 
-# Delete a task
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     db.delete(task)
     db.commit()
-    
     return {"message": "Task deleted successfully"}
 
