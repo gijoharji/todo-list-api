@@ -1,1 +1,4 @@
-venv/\n__pycache__/\n*.log
+venv/
+__pycache__/
+*.log
+.*.lock
